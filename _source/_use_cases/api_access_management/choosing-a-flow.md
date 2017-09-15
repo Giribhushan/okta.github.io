@@ -31,7 +31,15 @@ With these factors in mind, use the following decision tree to choose a flow:
 
 3. Do you simply want to refresh an existing token due to time limit or other barrier? Use Refresh flow. (not defined in specs?)
 
-You also need to choose between OpenID Connect or Oauth 2.0. <Mysti needs help here>
+You also need to choose between OpenID Connect or Oauth 2.0:
+
+| Difference                  | OAuth 2.0                 | OpenID Connect                                |
+|:----------------------------|:--------------------------|:----------------------------------------------|
+| `openid` scope is requested |                           | &#10004;                                      |
+| Access Token Contents       | May refer to any resource | Can only contain information from `/userinfo` |
+
+Think of the difference between an OAuth 2.0 flow and an OpenID Connect as the difference between seeking authorization to access a resource (OAuth 2.0),
+and seeking authentication of a user. 
 
 Now that you know which flow to use, you can learn about the different elements Okta has implemented to make the flows work.
 
@@ -73,6 +81,7 @@ We support the following app types for OAuth 2.0 and OpenID Connect:
 * Service App: Common for IoT applications or whenever one service needs to talk to another without a user context.
 
 When you create an app in Okta, you'll choose one of these types, represented by [the `application_type` property](/docs/api/resources/oauth-clients.html#client-application-properties).
+Some apps, like a service app, require specific flows, while other app types may use a range of flows.
 
 #### Grant Types and Flows
 
@@ -84,21 +93,30 @@ Okta supports the following `grant_type` values, most named after the flows defi
 * Hybrid: ???? Why don't we have a grant type for this? No Okta doc at all. What should I say about this?
 * Password (`password`): Use only in a trusted environment. A login page collects a user's credentials, then passes them to the security token service.
 * Client credentials (`client_credentials`): Use only in a trusted environment. For machine-to-machine access. This flow is OAuth 2.0 only, because OpenID Connect is an identity protocol. With no user context, no ID token is needed.
-* Refresh token (`refresh_token`): You may need a refresh token for long-running flows. <Need more here> 
+* Refresh token (`refresh_token`): You may need a refresh token for long-running flows. 
 
-#### Response Types
+So how do you know if these grant types (flows) represent an OAuth 2.0 or OpenID Connect context? As mentioned earlier, if you are requesting the `openid` scope, that's an OpenID Connect flow.
+
+#### Response Types and Tokens
 
 There's one more variable to account for, the response type. The response type indicates what will be returned in the response:
-an ID token, an access token, an authorization code, or some combination of the three.
-
-#### Tokens Revisited
-
-Okta manages four token types:
+an ID token, an access token, a refresh token, an authorization code, or some combination of the three.
 
 * ID token, for flows where the user needs to be identified. Don't send an ID token to an API.
 * Access token, for flows where the user's access to a particular resource needs to be evaluated. Don't send an access token to identify a user.
 * Refresh token, needed when the original token is in danger of expiring before the flow is complete.
-* I think there are more....
+* An authorization code can be exchanged for an access token or refresh token in a subsequent request in the flow.
 
-You can request ID tokens with an OIDC flow, which requires no additional feature be enabled. You can request access tokens or ID tokens or both with an OAuth 2.0 flow, available when Okta's API Access Management feature is enabled.
+Why is the authorization code included in this list with the tokens? Because often a first step before authorization is authentication, which may require an authorization code,
+depending on the grant type.
+
+| Response Type | ID Token | Access Token | Refresh Token | Authorization Code |
+|:--------------|:---------|:-------------|:--------------|:-------------------|
+| `code`        |          | &#10004;     | &#10004;      | &#10004;           |
+| `id_token`    | &#10004; |              |               |                    |
+| `token        |          | &#10004;     |               |                    |
+
+
+You can request ID tokens with no additional features enabled. You can request access tokens or ID tokens or both when Okta's API Access Management feature is enabled.
+Remember that developer orgs have most features enabled, but production orgs require that API Access Management be purchased and enabled.
 
